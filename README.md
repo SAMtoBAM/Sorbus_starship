@@ -15,21 +15,29 @@ Additionally, I have found that the this _Starship_ is in two insertion sites th
     conda activate fusemblr
     conda install ncbi-datasets-cli sra-tools
 
+    ##set the number of threads to use
+    threads="16"
+
     ##ok now we are ready to proceed
 
     ##first step is get the raw reads from sra
     ##the raw long-reads have the accession SRR17178875
-    ##and the short reads for the same strain 
+    ##this long-read dataset comes from the KU knock-out strain of DTO013F2 before deleting genes within the SORBUS cluster    
+    ##and the short reads for the same strain and study
     strain="DTO013F2"
     LR="SRR17178875"
     SR="SRR17211221"
 
     ##now use fasterq-dump to extract our reads (should be named is in the accession set variables)
     fasterq-dump $LR
+    ##this time split into the paired ends for the illumina data
     fasterq-dump --split-3 $SR
 
+    ##zip up the reads to save space
+    gzip *.fastq
+
     ##now we can jump straight to assembling this strain with fusemblr with an estimated genome size of 27Mb
-    fusemblr.sh -n ${LR}.fq.gz -1 ${SR}_1.fq.gz -2 ${SR}_2.fq.gz -g 27000000 -p DTO013F2 -o DTO013F2_fusemblr
+    fusemblr.sh -n ${LR}.fastq.gz -1 ${SR}_1.fastq.gz -2 ${SR}_2.fastq.gz -g 27000000 -p ${strain} -o ${strain}_fusemblr -t ${threads}
 
     
 
