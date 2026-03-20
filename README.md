@@ -1,5 +1,5 @@
 # Sorbus_starship
-Walkthrough detailing how the SORBUS cluster in _Penicillium roqueforti_ was confirmed as a _Starship_
+## Walkthrough detailing how the SORBUS cluster in _Penicillium roqueforti_ was confirmed as a _Starship_ I am simply calling sorbus
 
 
 [Punt et al. 2022](https://doi.org/10.1371/journal.pgen.1010086) detailed a cluster of genes that conferred Sorbic Acid resistance in a subset of _Pencillium roqueforti_ strains isolated from bread <br/>
@@ -8,6 +8,8 @@ However most analyses from Punt et al. used a strain (DTO006G7) in which only an
 Therefore this walkthrough details how I extracted the long-reads, re-assembled the genome, found the SORBUS cluster and identified the _Starship_ element I am calling Sorbus <br/>
 Additionally, I have found that the this _Starship_ is in two insertion sites therefore indicating this element is actively transposing and horizontally transferring between _P. roqueforti_ strains.
 
+
+### Step 1: Get a long-read assembly of the SORBUS containing strain DTO013F2
 
     ##Use the fusemblr conda environment plus a few additions in order to download raw reads and both assemble and evaluate the resulting assembly
     ##fusemblr is an pipeline wrapper (https://github.com/SAMtoBAM/fusemblr) used to assemble fungal genomes and evaluate them automatically using PAQman (https://github.com/SAMtoBAM/PAQman)  
@@ -39,7 +41,67 @@ Additionally, I have found that the this _Starship_ is in two insertion sites th
     ##now we can jump straight to assembling this strain with fusemblr with an estimated genome size of 27Mb
     fusemblr.sh -n ${LR}.fastq.gz -1 ${SR}_1.fastq.gz -2 ${SR}_2.fastq.gz -g 27000000 -p ${strain} -o ${strain}_fusemblr -t ${threads}
 
+    ##use the PAQman output to evaluate the best assembly
+    ##here we can see the best one is the Flye assembly (REASONS)
+    ##copy into into the current directory for all genomes
+    mkdir genomes
+    cp ${strain}_fusemblr/${strain}.XXXXXXXXXXXXXXXX ./genomes/${strain}.fa
+
+### Step 2: Use other publicaly available long-read assembly to identify _Starships_ in the new long-read assembly
+#### Step 2a: Get public long-read assembly LCP06133
+    ##we will use the a new environment for this next step
+    ##this is because we want to both download the publicly available long-read assembly for _P. roqueforti_ LCP06133 AND analyse _Starships_
+    ##this public long-read assembly has the accession GCA_030518555.1 used below
+    reference="GCA_030518555.1"
+
+    ##download the assembly then rename it etc
+    datasets download genome accession ${reference}
+    unzip ncbi_dataset.zip
+    rm ncbi_dataset.zip
+    ##rename them as just the ncbi GCA assession and rename the contig headers with the genome name 
+    ls ncbi_dataset/data/ | grep -v json | while read genome
+    do
+    genome2=$( echo $genome | sed 's/_//' | awk -F "." '{print $1}')
+    cat ncbi_dataset/data/$genome/$genome*.fna > genomes/$genome2.fa
+    done
+    ##clean up
+    rm -r ncbi_dataset/ md5sum.txt README.md
+
+    ##now the LCP06133 assembly is in the 'genomes' folder with the new DTO013F2 assembly
+
+#### Step 2b: Identify Starships with just the two assemblies
+    ##now we will use a new environment in order to run starfish (we only need starfish as this _Starship_ should be easy to identify)
+    ##but we will use the Stargraph wrapper to run all the steps
+
+    conda create -n stargraph samtobam::stargraph
+    conda activate stargraph
+
+    ls genomes/*.fa > assemblies_list.txt
+    starfish_wrapper.sh -a assemblies_list.txt
+
+    conda deactivate 
+
+### Step 3: Extract SORBUS cluster from short read assembly and identify region in long-read assembly
+
+    ##we will use the same environment as above 'fusemblr' to download the publicly available assembly for XXXXXXXXXXXX
+    ##in this strain the cluster was identified as XXXXXXXXXXXX
+
     
+
+    ##download the assembly then rename it etc
+    datasets download genome accession ${others}
+    unzip ncbi_dataset.zip
+    rm ncbi_dataset.zip
+    ##rename them as just the ncbi GCA assession and rename the contig headers with the genome name 
+    ls ncbi_dataset/data/ | grep -v json | while read genome
+    do
+    genome2=$( echo $genome | sed 's/_//' | awk -F "." '{print $1}')
+    cat ncbi_dataset/data/$genome/$genome*.fna > genomes/$genome2.fa
+    done
+    ##clean up
+    rm -r ncbi_dataset/ md5sum.txt README.md   
+
+
 
 
     
