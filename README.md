@@ -92,25 +92,45 @@ Additionally, I have found that the this _Starship_ is in two insertion sites th
 
 ### Step 3: Extract SORBUS cluster from short read assembly and identify region in long-read assembly
 
-    ##we will use the same environment as above 'fusemblr' to download the publicly available assembly for XXXXXXXXXXXX
-    ##in this strain the cluster was identified as XXXXXXXXXXXX
+    ##we will use the same environment as above 'fusemblr' to download the publicly available assembly for GCA_023141355.1
+    ##in this strain (DTO006G7) the cluster was identified in scaffold43 which corresponds to JAKIKL010000044.1
+    ##this is a 174kb contig
 
+    sorbusref="GCA_023141355.1"
+    sorbuscluster="JAKIKL010000044.1"
+
+    mkdir sorbus_ref
     
-
     ##download the assembly then rename it etc
-    datasets download genome accession ${others}
+    datasets download genome accession ${sorbusref}
     unzip ncbi_dataset.zip
     rm ncbi_dataset.zip
     ##rename them as just the ncbi GCA assession and rename the contig headers with the genome name 
     ls ncbi_dataset/data/ | grep -v json | while read genome
     do
     genome2=$( echo $genome | sed 's/_//' | awk -F "." '{print $1}')
-    cat ncbi_dataset/data/$genome/$genome*.fna > genomes/$genome2.fa
+    cat ncbi_dataset/data/$genome/$genome*.fna  > sorbus_ref/$genome2.fa
     done
     ##clean up
-    rm -r ncbi_dataset/ md5sum.txt README.md   
+    rm -r ncbi_dataset/ md5sum.txt README.md  
 
+    ##extract the sorbus cluster then look for the corresponding region in DTO013F2
+    ##use seqkit to grab the contig based on the ID
+    seqkit grep -p "${sorbuscluster}" sorbus_ref/*.fa > sorbus_cluster.fa
+    ##use blastn to find the region and filter out small matches
+    blastn -query sorbus_cluster.fa -subject genomes/DTO013F2.fa -outfmt 6 | awk '{if($4 > 10000) print}'
 
+    JAKIKL010000044.1	DTO013F2_contig1	99.900	77857	13	4	3475	81270	10647787	10569935	0.0	1.433e+05
+    JAKIKL010000044.1	DTO013F2_contig1	99.991	64392	5	1	81461	145852	10569933	10505543	0.0	1.189e+05
+    JAKIKL010000044.1	DTO013F2_contig1	99.974	34974	7	1	145895	180868	10505552	10470581	0.0	64534
 
+    ##corresponds to a starship found DTO013F2_s00007 (~400kb in total size)
+    DTO013F2_s00007	phoenixFam	navis0004-hap0003	DTO013F2_contig1	DTO013F2_tyr4	10297813	10689168	391356	-	insert	GCA030518555_site002	GCA030518555_CP130315.1	46605	46612	ttcttaca
+
+    ##got the captain 
+    DTO013F2_contig1	MetaEuk	mRNA	10686206	10688619	1054	-	.	Target_ID=penrub2_KAF3021169.1;Name=DTO013F2_tyr4
+
+    ##with a MYB/SANT gene at the opposite edge
+    DTO013F2_contig1	MetaEuk	mRNA	10298717	10299988	782	+	.	Target_ID=IBT25940-HTR6_g15471.t1;Name=DTO013F2_myb6
 
     
