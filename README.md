@@ -42,10 +42,19 @@ Additionally, I have found that the this _Starship_ is in two insertion sites th
     fusemblr.sh -n ${LR}.fastq.gz -1 ${SR}_1.fastq.gz -2 ${SR}_2.fastq.gz -g 27000000 -p ${strain} -o ${strain}_fusemblr -t ${threads}
 
     ##use the PAQman output to evaluate the best assembly
-    ##here we can see the best one is the Flye assembly (REASONS)
+    ##here we can see the best one is the Flye assembly (no redundant contigs to remove; 4 complete contiguous chromosomes plus 1 contig for MT)
+    ##but the Flye assembly is essentially the same with a few additional rDNA contigs 
+    ##No telomeres at all detected by PAQman and nothing obvious by visual inspection either; same for the public assembly too...
+
+    ##BIG SIDE NOTE: Does roqueforti have a different telomeric repeat? something like:
+    ## '[AG]AGTT[AG]AT[TAC][GAC]TC[TG]' with the degenerecy although generally a little distant from the actual end...need to work on this
+    ## using this repeat then the Flye assembly is T2T excluding the rDNA capped chromosome end (and better than the hifiasm version)
+    
+    assembler="flye"
+    
     ##copy into into the current directory for all genomes
     mkdir genomes
-    cp ${strain}_fusemblr/${strain}.XXXXXXXXXXXXXXXX ./genomes/${strain}.fa
+    cat ${strain}_fusemblr/${strain}.${assembler}.final.fa | sed "s/>/>${strain}_/g" | sed 's/contig_/contig/g' > ./genomes/${strain}.fa
 
 ### Step 2: Use other publicaly available long-read assembly to identify _Starships_ in the new long-read assembly
 #### Step 2a: Get public long-read assembly LCP06133
@@ -58,11 +67,11 @@ Additionally, I have found that the this _Starship_ is in two insertion sites th
     datasets download genome accession ${reference}
     unzip ncbi_dataset.zip
     rm ncbi_dataset.zip
-    ##rename them as just the ncbi GCA assession and rename the contig headers with the genome name 
+    ##rename them as just the ncbi GCA assession and rename the contig headers with the genome name and get rid of softmasking
     ls ncbi_dataset/data/ | grep -v json | while read genome
     do
     genome2=$( echo $genome | sed 's/_//' | awk -F "." '{print $1}')
-    cat ncbi_dataset/data/$genome/$genome*.fna > genomes/$genome2.fa
+    cat ncbi_dataset/data/$genome/$genome*.fna | sed "s/>/>${genome2}_/g" | awk -F " " '{print $1}' | awk '{if($0 ~ ">") {print} else {print toupper($0)}}' > genomes/$genome2.fa
     done
     ##clean up
     rm -r ncbi_dataset/ md5sum.txt README.md
@@ -77,7 +86,7 @@ Additionally, I have found that the this _Starship_ is in two insertion sites th
     conda activate stargraph
 
     ls genomes/*.fa > assemblies_list.txt
-    starfish_wrapper.sh -a assemblies_list.txt
+    starfish_wrapper.sh -a assemblies_list.txt -t ${threads} -o starfish_wrapper_output
 
     conda deactivate 
 
